@@ -5,7 +5,8 @@ Structure:
 - data
 - standardisation
 - outlier detection
-validation curve, parameter estimation
+- validation curve, parameter estimation
+    classifier.fit(data).predict(
 - pipeline
 - model testing
 
@@ -23,6 +24,9 @@ from sklearn.pipeline import make_pipeline
 from sklearn.model_selection import train_test_split
 
 iris = datasets.load_iris(as_frame=True)
+print(iris.DESCR)
+print(dir(iris))
+
 
 ## Scaling (linear) ##
 # (If your data has lots of outliers a more robust scaler should be used)
