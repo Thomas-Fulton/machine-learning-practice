@@ -1,5 +1,5 @@
 # machine-learning-practice
-Revision and development of statistical/machine learning knowledge and skills. Contains scripts with reminders of things to consider when analysing data using statistical/machine learning, and practical code that can be adapted for future projects.  
+Created as revision of statistical/machine learning knowledge, and and development of practical use and implementation. Contains scripts with reminders of things to consider when analysing data using statistical/machine learning, and practical code that can be adapted for future projects. [(Machine learning notes)](https://docs.google.com/document/d/16SaICaxEEwnf9FX5r6qksbG9Dh5pataqujhYIe5h8YE/edit?usp=sharing)
 ### Main aims:
 1. To increase my broader understanding of machine learning, its limitations, good practice, and the steps in a machine learning pipeline needed to produce valid/meaningful, reproducible and accurate results.
 2. To be confident in model selection from the question being asked, the available data, and suitability of the data
@@ -16,7 +16,7 @@ Revision and development of statistical/machine learning knowledge and skills. C
 - Finish steps and considerations below
 
 ## Steps and considerations when solving a problem through statistical/machine learning
-(Jason Brownlee at https://machinelearningmastery.com/)
+(see: Jason Brownlee at https://machinelearningmastery.com/)
 1. Define Problem: Investigate and characterize the problem in order to better understand
 the goals of the project. 
 2. Analyze Data: Use descriptive statistics and visualization to better understand the data
