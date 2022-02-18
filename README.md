@@ -49,7 +49,7 @@ Introduction to machine learning
 - Mini-course: https://machinelearningmastery.com/python-machine-learning-mini-course/
 - Pipelines: https://machinelearningmastery.com/machine-learning-modeling-pipelines/
 - Quick regressions: https://machinelearningmastery.com/spot-check-regression-machine-learning-algorithms-python-scikit-learn/
-- nice overview: DOI:10.1016/j.jacc.2018.03.521
+- nice overview: https://doi.org/10.1093/aje/kwz189 and https://DOI:10.1016/j.jacc.2018.03.521
 
 Choosing an algorithm tips:
 - https://www.kdnuggets.com/2020/05/guide-choose-right-machine-learning-algorithm.html
