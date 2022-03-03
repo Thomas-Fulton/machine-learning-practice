@@ -20,7 +20,7 @@ Created as revision of statistical/machine learning knowledge, and and developme
 (see: Jason Brownlee at https://machinelearningmastery.com/)
 1. Define Problem: Investigate and characterize the problem in order to better understand
 the goals of the project. 
-2. Analyze Data: Use descriptive statistics and visualization to better understand the data
+2. Explore/Analyze Data: Use descriptive statistics and visualization to better understand the data
 you have available.
 3. Prepare Data: Use data transforms in order to better expose the structure of the
 prediction problem to modeling algorithms.
@@ -35,7 +35,7 @@ well-performing algorithms on your data.
 What do you want to predict? Do you want to see the effect of certain factors, or perhaps the relationship between them?
 What information can be used as features, and what variable do you want to predict?
 
-## 2: Analyse data
+## 2: Explore/Analyse data
 Look at the raw data: the number of rows and columns `data.head(20)` `data.shape`; which columns are features and which are labels `data.names`; is there any missing data? Balanced class distributions? (TODO unbalanced: https://machinelearningmastery.com/what-is-imbalanced-classification/)
 
 ## 3:

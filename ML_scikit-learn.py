@@ -88,10 +88,20 @@ axs[1,1].set_title('Petal Width');
 # add some spacing between subplots
 fig.tight_layout(pad=1.0);
 
-# Boxplots
-fig, axs = plt.subplots(2, 2)
 feature_names = ["sepal_length", "sepal_width", "petal_length", "petal_width"]
 category_names = ['setosa', 'versicolor', 'virginica']
+
+# seaborn hist with Kernel Density Estimate:
+fig, axs = plt.subplots(2, 2)
+sns.histplot(pddata, x='sepal_length', hue='species', kde=True, ax = axs[0,0]);
+sns.histplot(pddata, x='sepal_width', hue='species', kde=True, ax = axs[0,1]);
+sns.histplot(pddata, x='petal_length', hue='species', kde=True, ax = axs[1,0]);
+sns.histplot(pddata, x='petal_width', hue='species', kde=True, ax = axs[1,1]);
+fig.tight_layout(pad=1.0);
+plt.show(block=True)
+
+# Boxplots
+fig, axs = plt.subplots(2, 2)
 sns.boxplot(x = 'species', y = 'sepal_length', data = pddata, order = category_names, ax = axs[0,0]);
 sns.boxplot(x = 'species', y = 'sepal_width', data = pddata, order = category_names, ax = axs[0,1]);
 sns.boxplot(x = 'species', y = 'petal_length', data = pddata, order = category_names, ax = axs[1,0]);
@@ -116,7 +126,9 @@ plt.show(block=True)
 parallel_coordinates(pddata, "species", color = ['blue', 'red', 'green']);
 plt.show(block=True)
 
-    ## Check assumptions ##
+
+
+    #### Check assumptions ####
 # Specific to each algorithm. See check_assumptions.py (TODO)
 # or notes (https://docs.google.com/document/d/16SaICaxEEwnf9FX5r6qksbG9Dh5pataqujhYIe5h8YE/edit?usp=sharing)
 # eg. features must be normally distributed: plot each, statistical test (Wilcox or something).
@@ -125,10 +137,13 @@ plt.show(block=True)
     ## Scaling (linear) and normalisation ##
 # (When using cross validation, scaling should be done on training data, and then applied to test data - this scales
 # ALL data!!)
-# (If your data has lots of outliers a more robust scaler should be used, or the outliers should be removed - standardscaler and minmaxscaler are v sensitive)
+# Identify outliers with domain knowledge and eg. boxplots,  (scale first to more easily view with many features, and
+# remove with threshold (or use more robust transformation):
+#df = df[(df['CALI'] >= 8.5) & (df['CALI'] <= 9)]
 
 # Scale so each feature is on the same scale, eg. 0-1:
-# First fit the scaler to the data
+# First fit the scaler to the data. (If your data has lots of outliers a more robust scaler should be used, or the
+# outliers should be removed - standardscaler and minmaxscaler are v sensitive).
 scaler = StandardScaler().fit(iris.data)
 scaler.mean_  # shows the mean of the data
 print("\n\nScale factor: ", scaler.scale_)  # shows the scale factor of the scaled data.
@@ -137,8 +152,10 @@ print("\n\nScale factor: ", scaler.scale_)  # shows the scale factor of the scal
 iris_scaled = scaler.transform(iris.data)
 type(iris_scaled)
 
-# If data should be normalised to a Gaussian distribution, check distribution with plot/statistical tests, and transform with:
+# If data should be normalised to a Gaussian distribution, check distribution with plot/statistical tests, and transform with either:
+# (power_transform, like taking log10 of data), or:
 scaler = quantile_transform(iris.data, output_distribution="normal").fit_transform(iris.data)
+#check with plot
 
 
     #### Cross Validation ####
@@ -149,6 +166,7 @@ k_fold = StratifiedKFold(n_splits=10, shuffle=True, random_state=666)
 
 all_models = list()
 
+
     #### Decision Tree ####
 
 mod_dt = DecisionTreeClassifier(max_depth=3, random_state=1)
@@ -158,19 +176,27 @@ predicted_probs = list()
 for train, test in k_fold.split(iris_scaled, y=iris.target):
     # Scale and normalise: Decision trees don't need to have normalised data!
 
+    # Fit model and make prediction:
     mod_dt.fit(iris_scaled[train], iris.target[train])
     prediction = mod_dt.predict(iris_scaled[test])
     predictions.append(prediction)
     feature_importance = mod_dt.feature_importances_
 
+    # Assess:
     accuracy = metrics.accuracy_score(prediction, iris.target[test])
     accuracies.append(accuracy)
     predicted_prob = mod_dt.predict_proba(iris_scaled[test])
     predicted_probs.append(predicted_prob)
-
     print('The accuracy of the Decision Tree is {:.3f}'.format(accuracy))
+    # Confusion matrix
+    disp = metrics.plot_confusion_matrix(mod_dt, iris_scaled[train], iris_scaled[test],
+                                         display_labels=category_names,
+                                         cmap=plt.cm.Blues,
+                                         normalize=None)
+    disp.ax_.set_title('Decision Tree Confusion matrix, without normalization');
 
 
+# Add lists of results for each CV block to dict:
 dt = {}
 dt['models'] = list()
 dt['accuracy'] = list()
