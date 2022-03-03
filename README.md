@@ -1,5 +1,5 @@
 # machine-learning-practice
-Revision and development of statistical/machine learning knowledge and skills. Contains scripts with reminders of things to consider when analysing data using statistical/machine learning, and practical code that can be adapted for future projects.  
+Created as revision of statistical/machine learning knowledge, and and development of practical use and implementation. Contains scripts with reminders of things to consider when analysing data using statistical/machine learning, and practical code that can be adapted for future projects. [(Machine learning notes)](https://docs.google.com/document/d/16SaICaxEEwnf9FX5r6qksbG9Dh5pataqujhYIe5h8YE/edit?usp=sharing)
 ### Main aims:
 1. To increase my broader understanding of machine learning, its limitations, good practice, and the steps in a machine learning pipeline needed to produce valid/meaningful, reproducible and accurate results.
 2. To be confident in model selection from the question being asked, the available data, and suitability of the data
@@ -17,7 +17,7 @@ Revision and development of statistical/machine learning knowledge and skills. C
 - Finish steps and considerations below
 
 ## Steps and considerations when solving a problem through statistical/machine learning
-(Jason Brownlee at https://machinelearningmastery.com/)
+(see: Jason Brownlee at https://machinelearningmastery.com/)
 1. Define Problem: Investigate and characterize the problem in order to better understand
 the goals of the project. 
 2. Analyze Data: Use descriptive statistics and visualization to better understand the data
@@ -36,7 +36,7 @@ What do you want to predict? Do you want to see the effect of certain factors, o
 What information can be used as features, and what variable do you want to predict?
 
 ## 2: Analyse data
-Look at the raw data: the number of rows and columns `data.head(20)` `data.shape`; which columns are features and which are labels `data.names`; is there any missing data? Balanced class distributions? (TODO unbalanced)
+Look at the raw data: the number of rows and columns `data.head(20)` `data.shape`; which columns are features and which are labels `data.names`; is there any missing data? Balanced class distributions? (TODO unbalanced: https://machinelearningmastery.com/what-is-imbalanced-classification/)
 
 ## 3:
 
@@ -51,6 +51,7 @@ Introduction to machine learning
 - Mini-course: https://machinelearningmastery.com/python-machine-learning-mini-course/
 - Pipelines: https://machinelearningmastery.com/machine-learning-modeling-pipelines/
 - Quick regressions: https://machinelearningmastery.com/spot-check-regression-machine-learning-algorithms-python-scikit-learn/
+- nice overview: https://doi.org/10.1093/aje/kwz189 and https://DOI:10.1016/j.jacc.2018.03.521
 - https://towardsdatascience.com/exploring-classifiers-with-python-scikit-learn-iris-dataset-2bcb490d2e1b
 
 Choosing an algorithm tips:
@@ -60,3 +61,7 @@ Choosing an algorithm tips:
 
 Model assumptions:
 - https://www.kdnuggets.com/2021/02/machine-learning-assumptions.html
+
+
+
+Questions:
