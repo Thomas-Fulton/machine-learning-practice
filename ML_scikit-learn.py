@@ -43,7 +43,7 @@ from sklearn.svm import SVC
 from sklearn.linear_model import LogisticRegression
 
 from sklearn import datasets
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, quantile_transform
 from sklearn.linear_model import LogisticRegression, LogisticRegressionCV
 from sklearn.pipeline import make_pipeline
 from sklearn.model_selection import train_test_split, KFold, StratifiedKFold, cross_val_score
@@ -67,43 +67,41 @@ pddata.head()
 
     ## Plot and explore data ##
 pddata.describe()
-# see distribution of samples in each category TODO if uneven distribution?
+# see distribution of samples in each category TODO if uneven distribution? https://machinelearningmastery.com/what-is-imbalanced-classification/
 pddata.groupby('species').size()
 
-#plt.interactive(True)
 
 ## Histograms
 # see distribution for each feature
 #plt.ioff()
+#plt.interactive(True)
 n_bins = 10
-plt.scatter(pddata['sepal_length'], pddata['sepal_width'])
-#plt.hist(pddata['sepal_length'], bins = n_bins)
-plt.show()
-#hist00.set_title('Sepal Length')
-#hist01 = plt.hist(pddata['sepal_width'], bins = n_bins)
-#hist01.set_title('Sepal Width')
-#hist10 = plt.hist(pddata['petal_length'], bins = n_bins)
-#hist10.set_title('Petal Length')
-#hist11 = plt.hist(pddata['petal_width'], bins = n_bins)
-#hist11.set_title('Petal Width')
+fig, axs = plt.subplots(2, 2)
+axs[0,0].hist(pddata['sepal_length'], bins = n_bins);
+axs[0,0].set_title('Sepal Length');
+axs[0,1].hist(pddata['sepal_width'], bins = n_bins);
+axs[0,1].set_title('Sepal Width');
+axs[1,0].hist(pddata['petal_length'], bins = n_bins);
+axs[1,0].set_title('Petal Length');
+axs[1,1].hist(pddata['petal_width'], bins = n_bins);
+axs[1,1].set_title('Petal Width');
 # add some spacing between subplots
-#fig.tight_layout(pad=1.0)
-#hist00.show()
+fig.tight_layout(pad=1.0);
 
 # Boxplots
 fig, axs = plt.subplots(2, 2)
-fn = ["sepal_length", "sepal_width", "petal_length", "petal_width"]
-cn = ['setosa', 'versicolor', 'virginica']
-sns.boxplot(x = 'species', y = 'sepal_length', data = pddata, order = cn, ax = axs[0,0]);
-sns.boxplot(x = 'species', y = 'sepal_width', data = pddata, order = cn, ax = axs[0,1]);
-sns.boxplot(x = 'species', y = 'petal_length', data = pddata, order = cn, ax = axs[1,0]);
-sns.boxplot(x = 'species', y = 'petal_width', data = pddata,  order = cn, ax = axs[1,1]);
+feature_names = ["sepal_length", "sepal_width", "petal_length", "petal_width"]
+category_names = ['setosa', 'versicolor', 'virginica']
+sns.boxplot(x = 'species', y = 'sepal_length', data = pddata, order = category_names, ax = axs[0,0]);
+sns.boxplot(x = 'species', y = 'sepal_width', data = pddata, order = category_names, ax = axs[0,1]);
+sns.boxplot(x = 'species', y = 'petal_length', data = pddata, order = category_names, ax = axs[1,0]);
+sns.boxplot(x = 'species', y = 'petal_width', data = pddata,  order = category_names, ax = axs[1,1]);
 # add some spacing between subplots
 fig.tight_layout(pad=1.0);
 plt.show(block=True)
 
 # Violin plots
-sns.violinplot(x="species", y="petal_length", data=pddata, size=5, order = cn, palette = 'colorblind');
+sns.violinplot(x="species", y="petal_length", data=pddata, size=5, order = category_names, palette = 'colorblind');
 plt.show(block=True)
 
 # Paired scatterplots
@@ -114,31 +112,79 @@ plt.show(block=True)
 corrmat = pddata.corr()
 sns.heatmap(corrmat, annot = True, square = True);
 plt.show(block=True)
-
-# alternative
+# alternative plot:
 parallel_coordinates(pddata, "species", color = ['blue', 'red', 'green']);
 plt.show(block=True)
 
     ## Check assumptions ##
+# Specific to each algorithm. See check_assumptions.py (TODO)
+# or notes (https://docs.google.com/document/d/16SaICaxEEwnf9FX5r6qksbG9Dh5pataqujhYIe5h8YE/edit?usp=sharing)
+# eg. features must be normally distributed: plot each, statistical test (Wilcox or something).
 
 
-    ## Scaling (linear) ##
+    ## Scaling (linear) and normalisation ##
+# (When using cross validation, scaling should be done on training data, and then applied to test data - this scales
+# ALL data!!)
+# (If your data has lots of outliers a more robust scaler should be used, or the outliers should be removed - standardscaler and minmaxscaler are v sensitive)
 
-# (If your data has lots of outliers a more robust scaler should be used)
+# Scale so each feature is on the same scale, eg. 0-1:
 # First fit the scaler to the data
 scaler = StandardScaler().fit(iris.data)
-scaler.mean_ # shows the mean of the data
-print("\n\nScale factor: ", scaler.scale_)  # shows the scale factor of the normalised data
+scaler.mean_  # shows the mean of the data
+print("\n\nScale factor: ", scaler.scale_)  # shows the scale factor of the scaled data.
 
 # Then scale the data itself
 iris_scaled = scaler.transform(iris.data)
 type(iris_scaled)
 
+# If data should be normalised to a Gaussian distribution, check distribution with plot/statistical tests, and transform with:
+scaler = quantile_transform(iris.data, output_distribution="normal").fit_transform(iris.data)
+
+
+    #### Cross Validation ####
+# Use stratifiedKFold if the estimator is a classifier, and target is binary or multiclass (keeps distribution of
+# categories in target class the same in each subset)
+k_fold = StratifiedKFold(n_splits=10, shuffle=True, random_state=666)
+
+
+all_models = list()
+
+    #### Decision Tree ####
+
+mod_dt = DecisionTreeClassifier(max_depth=3, random_state=1)
+predictions = list()
+accuracies = list()
+predicted_probs = list()
+for train, test in k_fold.split(iris_scaled, y=iris.target):
+    # Scale and normalise: Decision trees don't need to have normalised data!
+
+    mod_dt.fit(iris_scaled[train], iris.target[train])
+    prediction = mod_dt.predict(iris_scaled[test])
+    predictions.append(prediction)
+    feature_importance = mod_dt.feature_importances_
+
+    accuracy = metrics.accuracy_score(prediction, iris.target[test])
+    accuracies.append(accuracy)
+    predicted_prob = mod_dt.predict_proba(iris_scaled[test])
+    predicted_probs.append(predicted_prob)
+
+    print('The accuracy of the Decision Tree is {:.3f}'.format(accuracy))
+
+
+dt = {}
+dt['models'] = list()
+dt['accuracy'] = list()
+dt['predictions'] = predictions
+
+
+
+
+
+#### Logistic Regression ####
+
 logreg = LogisticRegressionCV(max_iter=1000)
 
-# Cross validation: return Use stratifiedKFold if the estimator is a classifier, and target is binary or multiclass (
-# keeps distribution of categories in target class the same in each subset)
-k_fold = StratifiedKFold(n_splits=10, shuffle=True, random_state=666)
+
 res = cross_val_score(logreg, iris_scaled, iris.target, cv=k_fold.split(iris_scaled, y=iris.target), n_jobs=-1)
 print("Accuracy: %.3f%% (%.3f%%)" % (res.mean()*100.0, res.std()*100.0))
 print("\n", res)
