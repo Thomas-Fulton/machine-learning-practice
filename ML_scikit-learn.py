@@ -36,7 +36,7 @@ from sklearn.model_selection import train_test_split
 from pandas.plotting import parallel_coordinates
 from sklearn.tree import DecisionTreeClassifier, plot_tree
 from sklearn import metrics
-from sklearn.metrics import classification_report
+from sklearn.metrics import classification_report, ConfusionMatrixDisplay
 from sklearn.model_selection import cross_val_score
 from sklearn.naive_bayes import GaussianNB
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis, QuadraticDiscriminantAnalysis
@@ -49,6 +49,8 @@ from sklearn.preprocessing import StandardScaler, quantile_transform
 from sklearn.linear_model import LogisticRegression, LogisticRegressionCV
 from sklearn.pipeline import make_pipeline
 from sklearn.model_selection import train_test_split, KFold, StratifiedKFold, cross_val_score
+
+from statistics import mean, stdev
 
     #### Load data ####
     ## Numpy ##
@@ -162,7 +164,18 @@ scaler = quantile_transform(iris.data, output_distribution="normal")
     #### Cross Validation ####
 # Use stratifiedKFold if the estimator is a classifier, and target is binary or multiclass (keeps distribution of
 # categories in target class the same in each subset)
-k_fold = StratifiedKFold(n_splits=10, shuffle=True, random_state=666)
+k_fold = StratifiedKFold(n_splits=6, shuffle=True, random_state=666)
+
+
+
+
+
+#########################################  Classification  ##########################################
+
+
+
+
+
 
     #### Decision Tree ####
 Model_dt = dict()
@@ -200,14 +213,15 @@ for train, test in k_fold.split(iris.data, y=iris.target):
     score = mod_dt.fit(iris_scaled_data[train], iris.target[train]).score(iris_scaled_data[test], iris.target[test])
     print(score)
     scores.append(score)
+
+    # Visualise decision tree.
     plt.figure(figsize=(10, 8))
     plot_tree(mod_dt, feature_names=feature_names, class_names=category_names, filled=True);
+    plt.show(block=True)
     print('The accuracy of the Decision Tree is {:.3f}'.format(accuracy))
     # Confusion matrix
-    #disp = metrics.plot_confusion_matrix(mod_dt, iris_scaled[train], iris_scaled[test],
-    #                                     display_labels=category_names,
-    #                                     cmap=plt.cm.Blues,
-    #                                     normalize=None)
+    ConfusionMatrixDisplay.from_estimator(mod_dt, iris_scaled_data[test], iris.target[test], display_labels=category_names)
+    plt.show(block=True)
     #disp.ax_.set_title('Decision Tree Confusion matrix, without normalization');
     report = classification_report(iris.target[test], prediction)
     print(report)
@@ -216,25 +230,159 @@ for train, test in k_fold.split(iris.data, y=iris.target):
 
 # Add lists of results for each CV block to dict:
 Model_dt['predictions'] = predictions
-Model_dt['accuracies'] = accuracies
+Model_dt['accuracies'] = accuracies  # scores and accuracies are the same?
+Model_dt['scores'] = scores
 Model_dt['predicted_probs'] = predicted_probs
 Model_dt['feature_importances'] = feature_importances
 Model_dt['reports'] = reports
 
+# Summarise results
+print("Accuracies: {}".format(Model_dt['accuracies']))
+print("Mean: {0:.2f}\n SD   : {0:.2f}".format(mean(Model_dt['accuracies']), stdev(Model_dt['accuracies'])))
 
+print("Reports: {}".format(Model_dt['reports']))
 
-## Or:
-cross_val_score(mod_dt, iris.data, iris.targets, cv=k_fold, n_jobs=-1)  # n_jobs -1 uses all cores on computer
+## Or (to quickly get accuracies):
+cross_val_score(mod_dt, iris.data, y=iris.target, cv=k_fold, n_jobs=-1)  # n_jobs -1 uses all cores on computer
 
 # Validation curves: https://scikit-learn.org/stable/modules/learning_curve.html
 # Plot predicted values against actual values of test data. For continuous output eg. regressions. Confusion matrices etc for classifiers.
 
 
-#### Logistic Regression ####
+
+
+    ####  Random Forest Classifier ####
+
+from sklearn.ensemble import RandomForestClassifier
+
+# n_estimators is the no trees: the larger the better, but also the longer it will take to compute. In addition, note that results will stop getting significantly better beyond a critical number of trees.
+# max features: sqrt(n_features) where n_features is the number of features in the data - good for classification.
+RandomForestClassifier(n_estimators=10, max_features="sqrt")
+
+# Spot Check Algorithms
+models = []
+models.append(('LR', LogisticRegression(solver='liblinear', multi_class='ovr')))
+models.append(('LDA', LinearDiscriminantAnalysis()))
+models.append(('KNN', KNeighborsClassifier()))
+models.append(('CART', DecisionTreeClassifier()))
+models.append(('NB', GaussianNB()))
+models.append(('SVM', SVC(gamma='auto')))
+# evaluate each model in turn
+results = []
+names = []
+for name, model in models:
+    kfold = StratifiedKFold(n_splits=10, random_state=1, shuffle=True)
+    cv_results = cross_val_score(model, X_train, Y_train, cv=kfold, scoring='accuracy')
+    results.append(cv_results)
+    names.append(name)
+    print('%s: %f (%f)' % (name, cv_results.mean(), cv_results.std()))
+# Compare Algorithms
+plt.boxplot(results, labels=names)
+plt.title('Algorithm Comparison')
+plt.show()
+
+
+
+    ####  Guassian Naive Bayes Classifier  ####
+
+mod_gnb = GaussianNB()
+y_pred = mod_gnb.fit(X_train[selected_predictors], y_train).predict(X_test[selected_predictors])
+print('The accuracy of the Guassian Naive Bayes Classifier with 2 predictors on test data is',"{:.3f}".format(metrics.accuracy_score(y_pred,y_test)))
+
+    #### Cross Validation ####
+# Use stratifiedKFold if the estimator is a classifier, and target is binary or multiclass (keeps distribution of
+# categories in target class the same in each subset)
+k_fold = StratifiedKFold(n_splits=5, shuffle=True, random_state=666)
+
+Model_gnb = dict()
+
+mod_gnb_all = GaussianNB()
+y_pred = mod_gnb_all.fit(X_train, y_train).predict(X_test)
+print('The accuracy of the Guassian Naive Bayes Classifier on test data is',"{:.3f}".format(metrics.accuracy_score(y_pred,y_test)))
+
+
+mod_dt = DecisionTreeClassifier(max_depth=3, random_state=1)
+predictions = list()
+accuracies = list()
+scores = list()
+predicted_probs = list()
+feature_importances = list()
+reports = list()
+for train, test in k_fold.split(iris.data, y=iris.target):
+    # Scale and normalise: (NOTE Not necessary for Decision trees)
+    scaler = StandardScaler().fit(iris.data[train])
+    print(scaler.mean_)  # shows the mean of the data
+    print("\n\nScale factor: ", scaler.scale_)  # shows the scale factor of the scaled data.
+    # Then scale the data itself. (Classification means a categorical target: no target transformation and un-transformation before assessing the model.)
+    iris_scaled_data = scaler.transform(iris.data)
+
+    # Fit model on training data :
+    mod_dt.fit(iris_scaled_data[train], iris.target[train])
+
+    # Make prediction on test data:
+    prediction = mod_dt.predict(iris_scaled_data[test])
+    predictions.append(prediction)
+    feature_importance = mod_dt.feature_importances_
+    feature_importances.append(feature_importance)
+
+    # Assess:
+    # https://scikit-learn.org/stable/modules/model_evaluation.html#classification-metrics
+    accuracy = metrics.accuracy_score(prediction, iris.target[test])
+    accuracies.append(accuracy)
+    predicted_prob = mod_dt.predict_proba(iris_scaled[test])
+    predicted_probs.append(predicted_prob)
+    score = mod_dt.fit(iris_scaled_data[train], iris.target[train]).score(iris_scaled_data[test], iris.target[test])
+    print(score)
+    scores.append(score)
+
+    # Visualise decision tree.
+    plt.figure(figsize=(10, 8))
+    plot_tree(mod_dt, feature_names=feature_names, class_names=category_names, filled=True);
+    plt.show(block=True)
+    print('The accuracy of the Decision Tree is {:.3f}'.format(accuracy))
+    # Confusion matrix
+    ConfusionMatrixDisplay.from_estimator(mod_dt, iris_scaled_data[test], iris.target[test], display_labels=category_names)
+    plt.show(block=True)
+    #disp.ax_.set_title('Decision Tree Confusion matrix, without normalization');
+    report = classification_report(iris.target[test], prediction)
+    print(report)
+    reports.append(report)
+
+
+# Add lists of results for each CV block to dict:
+Model_dt['predictions'] = predictions
+Model_dt['accuracies'] = accuracies  # scores and accuracies are the same?
+Model_dt['scores'] = scores
+Model_dt['predicted_probs'] = predicted_probs
+Model_dt['feature_importances'] = feature_importances
+Model_dt['reports'] = reports
+
+# Summarise results
+print("Accuracies: {}".format(Model_dt['accuracies']))
+print("Mean: {0:.2f}\n SD   : {0:.2f}".format(mean(Model_dt['accuracies']), stdev(Model_dt['accuracies'])))
+
+print("Reports: {}".format(Model_dt['reports']))
+
+
+    ####  Support Vector Machines  ####
+
+
+
+
+
+
+
+
+
+
+
+
+
+    #### Logistic Regression ####
+
 # target must be transformed too, and the transformation should be undone before assessing the model
 # https://machinelearningmastery.com/how-to-transform-target-variables-for-regression-with-scikit-learn/
 logreg = LogisticRegressionCV(max_iter=1000)
-
 
 res = cross_val_score(logreg, iris_scaled, iris.target, cv=k_fold.split(iris_scaled, y=iris.target), n_jobs=-1)
 print("Accuracy: %.3f%% (%.3f%%)" % (res.mean()*100.0, res.std()*100.0))
@@ -258,8 +406,11 @@ print(res)
 ## Pipeline
 
 
-#for train, test in k_fold.split(iris_scaled, y=iris.target):
-#    logreg.fit(iris_scaled[train], iris.target[train]).predict(iris_scaled[test])
+
+# Grid search to choose which model? and parameter optimisation
+
+
+
 
 
 
@@ -281,4 +432,3 @@ print(res)
 
 # Model selection
 # https://scikit-learn.org/stable/tutorial/statistical_inference/model_selection.html#model-selection-tut
-# Grid search to choose which model?
