@@ -36,6 +36,8 @@ from sklearn.model_selection import train_test_split
 from pandas.plotting import parallel_coordinates
 from sklearn.tree import DecisionTreeClassifier, plot_tree
 from sklearn import metrics
+from sklearn.metrics import classification_report
+from sklearn.model_selection import cross_val_score
 from sklearn.naive_bayes import GaussianNB
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis, QuadraticDiscriminantAnalysis
 from sklearn.neighbors import KNeighborsClassifier
@@ -69,6 +71,7 @@ pddata.head()
 pddata.describe()
 # see distribution of samples in each category TODO if uneven distribution? https://machinelearningmastery.com/what-is-imbalanced-classification/
 pddata.groupby('species').size()
+pddata.info()
 
 
 ## Histograms
@@ -127,7 +130,6 @@ parallel_coordinates(pddata, "species", color = ['blue', 'red', 'green']);
 plt.show(block=True)
 
 
-
     #### Check assumptions ####
 # Specific to each algorithm. See check_assumptions.py (TODO)
 # or notes (https://docs.google.com/document/d/16SaICaxEEwnf9FX5r6qksbG9Dh5pataqujhYIe5h8YE/edit?usp=sharing)
@@ -143,7 +145,7 @@ plt.show(block=True)
 
 # Scale so each feature is on the same scale, eg. 0-1:
 # First fit the scaler to the data. (If your data has lots of outliers a more robust scaler should be used, or the
-# outliers should be removed - standardscaler and minmaxscaler are v sensitive).
+# outliers should be identified and removed - StandardScaler and MinMaxScaler are v sensitive).
 scaler = StandardScaler().fit(iris.data)
 scaler.mean_  # shows the mean of the data
 print("\n\nScale factor: ", scaler.scale_)  # shows the scale factor of the scaled data.
@@ -152,62 +154,85 @@ print("\n\nScale factor: ", scaler.scale_)  # shows the scale factor of the scal
 iris_scaled = scaler.transform(iris.data)
 type(iris_scaled)
 
-# If data should be normalised to a Gaussian distribution, check distribution with plot/statistical tests, and transform with either:
-# (power_transform, like taking log10 of data), or:
-scaler = quantile_transform(iris.data, output_distribution="normal").fit_transform(iris.data)
-#check with plot
-
+# If data should be transformed to a Gaussian distribution, check distribution with plot/statistical tests, and
+# transform with either: (power_transform, like taking log10 of data), or:
+scaler = quantile_transform(iris.data, output_distribution="normal")
+# check with plot
 
     #### Cross Validation ####
 # Use stratifiedKFold if the estimator is a classifier, and target is binary or multiclass (keeps distribution of
 # categories in target class the same in each subset)
 k_fold = StratifiedKFold(n_splits=10, shuffle=True, random_state=666)
 
-
-all_models = list()
-
-
     #### Decision Tree ####
+Model_dt = dict()
 
 mod_dt = DecisionTreeClassifier(max_depth=3, random_state=1)
 predictions = list()
 accuracies = list()
+scores = list()
 predicted_probs = list()
-for train, test in k_fold.split(iris_scaled, y=iris.target):
-    # Scale and normalise: Decision trees don't need to have normalised data!
+feature_importances = list()
+reports = list()
+for train, test in k_fold.split(iris.data, y=iris.target):
+    # Scale and normalise: (NOTE Not necessary for Decision trees)
+    scaler = StandardScaler().fit(iris.data[train])
+    print(scaler.mean_)  # shows the mean of the data
+    print("\n\nScale factor: ", scaler.scale_)  # shows the scale factor of the scaled data.
+    # Then scale the data itself. (Classification means a categorical target: no target transformation and un-transformation before assessing the model.)
+    iris_scaled_data = scaler.transform(iris.data)
 
-    # Fit model and make prediction:
-    mod_dt.fit(iris_scaled[train], iris.target[train])
-    prediction = mod_dt.predict(iris_scaled[test])
+    # Fit model on training data :
+    mod_dt.fit(iris_scaled_data[train], iris.target[train])
+
+    # Make prediction on test data:
+    prediction = mod_dt.predict(iris_scaled_data[test])
     predictions.append(prediction)
     feature_importance = mod_dt.feature_importances_
+    feature_importances.append(feature_importance)
 
     # Assess:
+    # https://scikit-learn.org/stable/modules/model_evaluation.html#classification-metrics
     accuracy = metrics.accuracy_score(prediction, iris.target[test])
     accuracies.append(accuracy)
     predicted_prob = mod_dt.predict_proba(iris_scaled[test])
     predicted_probs.append(predicted_prob)
+    score = mod_dt.fit(iris_scaled_data[train], iris.target[train]).score(iris_scaled_data[test], iris.target[test])
+    print(score)
+    scores.append(score)
+    plt.figure(figsize=(10, 8))
+    plot_tree(mod_dt, feature_names=feature_names, class_names=category_names, filled=True);
     print('The accuracy of the Decision Tree is {:.3f}'.format(accuracy))
     # Confusion matrix
-    disp = metrics.plot_confusion_matrix(mod_dt, iris_scaled[train], iris_scaled[test],
-                                         display_labels=category_names,
-                                         cmap=plt.cm.Blues,
-                                         normalize=None)
-    disp.ax_.set_title('Decision Tree Confusion matrix, without normalization');
+    #disp = metrics.plot_confusion_matrix(mod_dt, iris_scaled[train], iris_scaled[test],
+    #                                     display_labels=category_names,
+    #                                     cmap=plt.cm.Blues,
+    #                                     normalize=None)
+    #disp.ax_.set_title('Decision Tree Confusion matrix, without normalization');
+    report = classification_report(iris.target[test], prediction)
+    print(report)
+    reports.append(report)
 
 
 # Add lists of results for each CV block to dict:
-dt = {}
-dt['models'] = list()
-dt['accuracy'] = list()
-dt['predictions'] = predictions
+Model_dt['predictions'] = predictions
+Model_dt['accuracies'] = accuracies
+Model_dt['predicted_probs'] = predicted_probs
+Model_dt['feature_importances'] = feature_importances
+Model_dt['reports'] = reports
 
 
 
+## Or:
+cross_val_score(mod_dt, iris.data, iris.targets, cv=k_fold, n_jobs=-1)  # n_jobs -1 uses all cores on computer
+
+# Validation curves: https://scikit-learn.org/stable/modules/learning_curve.html
+# Plot predicted values against actual values of test data. For continuous output eg. regressions. Confusion matrices etc for classifiers.
 
 
 #### Logistic Regression ####
-
+# target must be transformed too, and the transformation should be undone before assessing the model
+# https://machinelearningmastery.com/how-to-transform-target-variables-for-regression-with-scikit-learn/
 logreg = LogisticRegressionCV(max_iter=1000)
 
 
@@ -225,9 +250,9 @@ res['predicts'] = [logreg.fit(iris_scaled[train], iris.target[train]).predict(ir
 print(res)
 
 # Evaluate predictions
-print(accuracy_score(Y_validation, predictions))
-print(confusion_matrix(Y_validation, predictions))
-print(classification_report(Y_validation, predictions))
+#print(accuracy_score(Y_validation, predictions))
+#print(confusion_matrix(Y_validation, predictions))
+#print(classification_report(Y_validation, predictions))
 
 
 ## Pipeline
@@ -249,3 +274,11 @@ print(classification_report(Y_validation, predictions))
 
 
 # Random Forrest classifier
+
+
+
+
+
+# Model selection
+# https://scikit-learn.org/stable/tutorial/statistical_inference/model_selection.html#model-selection-tut
+# Grid search to choose which model?
